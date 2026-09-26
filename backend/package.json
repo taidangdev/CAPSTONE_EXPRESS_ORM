@@ -27,14 +27,15 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.4.0",
+    "prisma": "7.10.0",
     "zod": "^4.6.5"
-  },
-  "devDependencies": {
-    "prisma": "7.10.0"
   },
   "allowScripts": {
     "prisma@7.10.0": true,
     "@prisma/engines@7.10.0": true,
     "bcrypt": false
+  },
+  "engines": {
+    "node": ">=22.18"
   }
 }
