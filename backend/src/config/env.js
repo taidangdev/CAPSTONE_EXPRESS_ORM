@@ -2,7 +2,13 @@
 // Thiếu biến bắt buộc thì dừng ngay ở đây, tránh chạy được rồi lỗi lúc có request.
 import "dotenv/config";
 
-const REQUIRED = ["DATABASE_URL", "JWT_SECRET"];
+const REQUIRED = [
+  "DATABASE_URL",
+  "JWT_SECRET",
+  "CLOUDINARY_CLOUD_NAME",
+  "CLOUDINARY_API_KEY",
+  "CLOUDINARY_API_SECRET",
+];
 
 const missing = REQUIRED.filter((key) => !process.env[key]);
 if (missing.length > 0) {

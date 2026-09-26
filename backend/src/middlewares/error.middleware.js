@@ -12,11 +12,13 @@ export const notFoundHandler = (req, res, next) => {
 export const errorHandler = (err, req, res, next) => {
   const isKnownError = err instanceof ApiError;
   const prismaMessage = mapPrismaErrorMessage(err);
-  const statusCode = isKnownError ? err.statusCode : prismaMessage ? prismaMessage.statusCode : 500;
+  const multerMessage = mapMulterErrorMessage(err);
+  const knownMessage = prismaMessage || multerMessage;
+  const statusCode = isKnownError ? err.statusCode : knownMessage ? knownMessage.statusCode : 500;
 
   let message = "Lỗi hệ thống, vui lòng thử lại sau";
   if (isKnownError) message = err.message;
-  else if (prismaMessage) message = prismaMessage.message;
+  else if (knownMessage) message = knownMessage.message;
 
   if (statusCode === 500) {
     console.error(err);
@@ -43,4 +45,14 @@ function mapPrismaErrorMessage(err) {
     return { statusCode: 404, message: "Không tìm thấy dữ liệu" }; // không có bản ghi để update/delete
   }
   return null;
+}
+
+// multer ném lỗi có name === "MulterError" với các mã LIMIT_*. Quy về thông
+// báo tiếng Việt, không lộ nguyên văn thông báo tiếng Anh của multer.
+function mapMulterErrorMessage(err) {
+  if (err?.name !== "MulterError") return null;
+  if (err.code === "LIMIT_FILE_SIZE") {
+    return { statusCode: 400, message: "File ảnh vượt quá dung lượng cho phép (tối đa 5MB)" };
+  }
+  return { statusCode: 400, message: "Upload file thất bại" };
 }

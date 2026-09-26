@@ -10,6 +10,9 @@ export const getMe = asyncHandler(async (req, res) => {
 });
 
 export const updateMe = asyncHandler(async (req, res) => {
-  const user = await userService.updateMe(req.user.id, req.body);
+  const user = await userService.updateMe(req.user.id, {
+    ...req.body,
+    avatarFile: req.file,
+  });
   ok(res, user, "Cập nhật thông tin thành công");
 });
