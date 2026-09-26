@@ -1,6 +1,7 @@
 import { Router } from "express";
 import * as imageController from "../controllers/image.controller.js";
 import * as commentController from "../controllers/comment.controller.js";
+import * as saveController from "../controllers/save.controller.js";
 import { protect } from "../middlewares/auth.middleware.js";
 import upload from "../middlewares/upload.middleware.js";
 import validate from "../middlewares/validate.middleware.js";
@@ -40,5 +41,10 @@ router.post(
   validate({ params: idParamSchema, body: createCommentSchema }),
   commentController.createComment,
 );
+
+// Route lưu/bỏ lưu ảnh (xem doc/ROADMAP.md giai đoạn 6)
+router.get("/:id/saved", protect, validate({ params: idParamSchema }), saveController.isSaved);
+router.post("/:id/save", protect, validate({ params: idParamSchema }), saveController.saveImage);
+router.delete("/:id/save", protect, validate({ params: idParamSchema }), saveController.unsaveImage);
 
 export default router;
