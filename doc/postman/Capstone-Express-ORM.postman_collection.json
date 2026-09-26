@@ -1,0 +1,294 @@
+{
+  "info": {
+    "name": "Capstone Express ORM",
+    "description": "API cho ứng dụng chia sẻ ảnh kiểu Pinterest. Xem doc/DECISIONS.md và doc/ROADMAP.md trong repo để biết chi tiết thiết kế.\n\nCách dùng nhanh:\n1. Chạy request 'Đăng nhập' trong folder Auth (dùng tài khoản seed, ví dụ an@seed.local / password123).\n2. Token trả về sẽ TỰ ĐỘNG được lưu vào biến {{token}} (xem tab Tests của request đó).\n3. Mọi request cần đăng nhập khác tự dùng {{token}} qua header Authorization.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api" },
+    { "key": "token", "value": "" },
+    { "key": "imageId", "value": "1", "description": "Đổi thành id ảnh có thật để test các API theo ảnh" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Đăng ký",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user-moi@example.com\",\n  \"password\": \"secret123\",\n  \"fullName\": \"Nguyen Van Test\",\n  \"age\": 20\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Đăng nhập",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.token) {",
+                  "  pm.collectionVariables.set('token', json.data.token);",
+                  "  console.log('Da luu token vao bien {{token}}');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"an@seed.local\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Thông tin cá nhân (me)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "me"]
+            }
+          }
+        },
+        {
+          "name": "Sửa thông tin cá nhân",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "fullName", "value": "Ten moi", "type": "text" },
+                { "key": "age", "value": "25", "type": "text" },
+                { "key": "avatar", "type": "file", "src": [], "disabled": true }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "me"]
+            }
+          }
+        },
+        {
+          "name": "Ảnh đã tạo",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/users/me/created-images?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "me", "created-images"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Ảnh đã lưu",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/users/me/saved-images?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "me", "saved-images"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Images",
+      "item": [
+        {
+          "name": "Danh sách ảnh (trang chủ)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/images?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["images"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Tìm kiếm ảnh theo tên",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/images/search?name=hoa&page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["images", "search"],
+              "query": [
+                { "key": "name", "value": "hoa" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Chi tiết ảnh",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/images/{{imageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["images", "{{imageId}}"]
+            }
+          }
+        },
+        {
+          "name": "Đăng ảnh mới",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "Ten anh", "type": "text" },
+                { "key": "description", "value": "Mo ta anh", "type": "text" },
+                { "key": "image", "type": "file", "src": [] }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/images",
+              "host": ["{{baseUrl}}"],
+              "path": ["images"]
+            }
+          }
+        },
+        {
+          "name": "Xoá ảnh",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/images/{{imageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["images", "{{imageId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Comments",
+      "item": [
+        {
+          "name": "Danh sách bình luận",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/images/{{imageId}}/comments?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["images", "{{imageId}}", "comments"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Thêm bình luận",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Anh dep qua!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/images/{{imageId}}/comments",
+              "host": ["{{baseUrl}}"],
+              "path": ["images", "{{imageId}}", "comments"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Save",
+      "item": [
+        {
+          "name": "Kiểm tra đã lưu chưa",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/images/{{imageId}}/saved",
+              "host": ["{{baseUrl}}"],
+              "path": ["images", "{{imageId}}", "saved"]
+            }
+          }
+        },
+        {
+          "name": "Lưu ảnh",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/images/{{imageId}}/save",
+              "host": ["{{baseUrl}}"],
+              "path": ["images", "{{imageId}}", "save"]
+            }
+          }
+        },
+        {
+          "name": "Bỏ lưu ảnh",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/images/{{imageId}}/save",
+              "host": ["{{baseUrl}}"],
+              "path": ["images", "{{imageId}}", "save"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
