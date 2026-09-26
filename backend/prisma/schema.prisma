@@ -1,7 +1,6 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// Schema cho ứng dụng chia sẻ ảnh (Pinterest clone).
+// Tên model dùng tiếng Anh cho dễ đọc trong code, tên bảng và cột map sang
+// tiếng Việt theo ERD của đề bài (xem doc/DECISIONS.md mục D4).
 
 generator client {
   provider = "prisma-client"
@@ -10,4 +9,75 @@ generator client {
 
 datasource db {
   provider = "mysql"
+}
+
+model User {
+  id             Int     @id @default(autoincrement()) @map("nguoi_dung_id")
+  email          String  @unique @db.VarChar(255)
+  password       String  @map("mat_khau") @db.VarChar(255)
+  fullName       String  @map("ho_ten") @db.VarChar(255)
+  age            Int?    @map("tuoi")
+  avatar         String? @map("anh_dai_dien") @db.VarChar(500)
+  // public_id của Cloudinary, dùng để xoá avatar cũ khi user đổi ảnh
+  avatarPublicId String? @map("anh_dai_dien_public_id") @db.VarChar(255)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  images      Image[]
+  comments    Comment[]
+  savedImages SavedImage[]
+
+  @@map("nguoi_dung")
+}
+
+model Image {
+  id          Int     @id @default(autoincrement()) @map("hinh_id")
+  name        String  @map("ten_hinh") @db.VarChar(255)
+  url         String  @map("duong_dan") @db.VarChar(500)
+  // public_id của Cloudinary, dùng để xoá file khi xoá ảnh
+  publicId    String  @map("public_id") @db.VarChar(255)
+  description String? @map("mo_ta") @db.VarChar(1000)
+  // Kích thước ảnh do Cloudinary trả về, giúp frontend giữ chỗ trong lưới masonry
+  width       Int?    @map("chieu_rong")
+  height      Int?    @map("chieu_cao")
+  userId      Int     @map("nguoi_dung_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments Comment[]
+  savedBy  SavedImage[]
+
+  @@map("hinh_anh")
+}
+
+model Comment {
+  id      Int    @id @default(autoincrement()) @map("binh_luan_id")
+  userId  Int    @map("nguoi_dung_id")
+  imageId Int    @map("hinh_id")
+  content String @map("noi_dung") @db.VarChar(1000)
+
+  createdAt DateTime @default(now()) @map("ngay_binh_luan")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  image Image @relation(fields: [imageId], references: [id], onDelete: Cascade)
+
+  @@map("binh_luan")
+}
+
+// Bảng trung gian user <-> ảnh đã lưu. Khoá chính ghép đảm bảo mỗi user
+// chỉ lưu một ảnh tối đa một lần.
+model SavedImage {
+  userId  Int @map("nguoi_dung_id")
+  imageId Int @map("hinh_id")
+
+  savedAt DateTime @default(now()) @map("ngay_luu")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  image Image @relation(fields: [imageId], references: [id], onDelete: Cascade)
+
+  @@id([userId, imageId])
+  @@map("luu_anh")
 }
