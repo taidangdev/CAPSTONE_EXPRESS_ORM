@@ -4,6 +4,7 @@ import { protect } from "../middlewares/auth.middleware.js";
 import upload from "../middlewares/upload.middleware.js";
 import validate from "../middlewares/validate.middleware.js";
 import { updateMeSchema } from "../validations/user.validation.js";
+import { paginationSchema } from "../validations/common.validation.js";
 
 const router = Router();
 
@@ -14,6 +15,19 @@ router.put(
   upload.single("avatar"),
   validate({ body: updateMeSchema }),
   userController.updateMe,
+);
+
+router.get(
+  "/me/created-images",
+  protect,
+  validate({ query: paginationSchema }),
+  userController.getCreatedImages,
+);
+router.get(
+  "/me/saved-images",
+  protect,
+  validate({ query: paginationSchema }),
+  userController.getSavedImages,
 );
 
 export default router;

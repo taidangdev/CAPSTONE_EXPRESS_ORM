@@ -4,10 +4,12 @@ import * as cloudinaryService from "./cloudinary.service.js";
 import { toSkipTake, buildPageResult } from "../utils/pagination.js";
 import { userPublicSelect } from "../constants/select.js";
 
-// Field trả về cho danh sách ảnh (trang chủ, tìm kiếm). Không include cả
-// user ở đây để response gọn nhẹ hơn khi trả nhiều ảnh cùng lúc; thông tin
-// người tạo chỉ cần thiết ở trang chi tiết (getImageById).
-const imageListSelect = {
+// Field trả về cho danh sách ảnh (trang chủ, tìm kiếm, trang quản lý...).
+// Không include cả user ở đây để response gọn nhẹ hơn khi trả nhiều ảnh cùng
+// lúc; thông tin người tạo chỉ cần thiết ở trang chi tiết (getImageById).
+// Export để user.service.js dùng lại cho trang quản lý ảnh (giai đoạn 7),
+// không viết lại select trùng lặp.
+export const imageListSelect = {
   id: true,
   name: true,
   url: true,
@@ -22,13 +24,30 @@ const imageListSelect = {
 // Prisma trả field đếm dưới dạng { _count: { comments, savedBy } }. Đổi
 // sang { commentsCount, savedCount } phẳng hơn, dễ dùng ở frontend, và
 // không lộ tên field nội bộ "savedBy" ra ngoài API.
-function withCounts(image) {
+export function withCounts(image) {
   const { _count, ...rest } = image;
   return {
     ...rest,
     commentsCount: _count?.comments ?? 0,
     savedCount: _count?.savedBy ?? 0,
   };
+}
+
+// Dùng chung cho mọi API trả "danh sách ảnh có phân trang" lọc theo điều
+// kiện bất kỳ (không lọc gì, tìm theo tên, lọc theo userId...). listImages,
+// searchImages, và userService.getCreatedImages đều gọi hàm này.
+async function paginateImages(where, { page, limit }) {
+  const [items, totalItems] = await prisma.$transaction([
+    prisma.image.findMany({
+      where,
+      ...toSkipTake({ page, limit }),
+      orderBy: { createdAt: "desc" },
+      select: imageListSelect,
+    }),
+    prisma.image.count({ where }),
+  ]);
+
+  return buildPageResult({ items: items.map(withCounts), totalItems, page, limit });
 }
 
 export const createImage = async ({ userId, name, description, file }) => {
@@ -72,38 +91,18 @@ export const deleteImage = async (imageId, userId) => {
   await cloudinaryService.deleteImage(image.publicId);
 };
 
-export const listImages = async ({ page, limit }) => {
-  // $transaction chạy findMany và count trong cùng một transaction, đảm bảo
-  // totalItems khớp đúng với thời điểm lấy items, tránh lệch số khi có ảnh
-  // mới được thêm/xoá giữa hai truy vấn.
-  const [items, totalItems] = await prisma.$transaction([
-    prisma.image.findMany({
-      ...toSkipTake({ page, limit }),
-      orderBy: { createdAt: "desc" },
-      select: imageListSelect,
-    }),
-    prisma.image.count(),
-  ]);
+export const listImages = ({ page, limit }) => paginateImages({}, { page, limit });
 
-  return buildPageResult({ items: items.map(withCounts), totalItems, page, limit });
-};
-
-export const searchImages = async ({ name, page, limit }) => {
+export const searchImages = ({ name, page, limit }) => {
   // Không cần "mode: insensitive": collation utf8mb4_unicode_ci của DB đã tự
   // bỏ qua hoa/thường và dấu (đã kiểm tra thực tế, xem doc/DECISIONS.md).
-  const where = { name: { contains: name } };
+  return paginateImages({ name: { contains: name } }, { page, limit });
+};
 
-  const [items, totalItems] = await prisma.$transaction([
-    prisma.image.findMany({
-      where,
-      ...toSkipTake({ page, limit }),
-      orderBy: { createdAt: "desc" },
-      select: imageListSelect,
-    }),
-    prisma.image.count({ where }),
-  ]);
-
-  return buildPageResult({ items: items.map(withCounts), totalItems, page, limit });
+// Export để user.service.js dùng cho "danh sách ảnh đã tạo" (lọc theo
+// userId), không viết lại logic phân trang + $transaction.
+export const listImagesByUser = (userId, { page, limit }) => {
+  return paginateImages({ userId }, { page, limit });
 };
 
 export const getImageById = async (imageId) => {
@@ -125,4 +124,11 @@ export const getImageById = async (imageId) => {
   return withCounts(image);
 };
 
-export default { createImage, deleteImage, listImages, searchImages, getImageById };
+export default {
+  createImage,
+  deleteImage,
+  listImages,
+  searchImages,
+  listImagesByUser,
+  getImageById,
+};

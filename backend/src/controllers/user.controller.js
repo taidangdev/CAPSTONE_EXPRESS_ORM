@@ -16,3 +16,13 @@ export const updateMe = asyncHandler(async (req, res) => {
   });
   ok(res, user, "Cập nhật thông tin thành công");
 });
+
+export const getCreatedImages = asyncHandler(async (req, res) => {
+  const result = await userService.getCreatedImages(req.user.id, req.query);
+  ok(res, result);
+});
+
+export const getSavedImages = asyncHandler(async (req, res) => {
+  const result = await userService.getSavedImages(req.user.id, req.query);
+  ok(res, result);
+});

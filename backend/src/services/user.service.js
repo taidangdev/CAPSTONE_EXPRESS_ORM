@@ -2,6 +2,8 @@ import prisma from "../config/prisma.js";
 import ApiError from "../utils/ApiError.js";
 import { userPublicSelect } from "../constants/select.js";
 import * as cloudinaryService from "./cloudinary.service.js";
+import { listImagesByUser, imageListSelect, withCounts } from "./image.service.js";
+import { toSkipTake, buildPageResult } from "../utils/pagination.js";
 
 export const getMe = async (userId) => {
   const user = await prisma.user.findUnique({
@@ -58,4 +60,33 @@ export const updateMe = async (userId, { fullName, age, avatarFile }) => {
   }
 };
 
-export default { getMe, updateMe };
+// Ảnh do user tạo: tái sử dụng thẳng logic phân trang của image.service.js,
+// chỉ khác điều kiện lọc (userId của chính user đang đăng nhập).
+export const getCreatedImages = (userId, { page, limit }) => {
+  return listImagesByUser(userId, { page, limit });
+};
+
+export const getSavedImages = async (userId, { page, limit }) => {
+  const where = { userId };
+
+  // Sắp theo savedAt (thời điểm LƯU), không phải createdAt của ảnh — ảnh lưu
+  // gần đây nhất lên đầu, đúng tinh thần "danh sách đã lưu" của trang quản lý.
+  const [rows, totalItems] = await prisma.$transaction([
+    prisma.savedImage.findMany({
+      where,
+      ...toSkipTake({ page, limit }),
+      orderBy: { savedAt: "desc" },
+      select: { image: { select: imageListSelect } },
+    }),
+    prisma.savedImage.count({ where }),
+  ]);
+
+  // Map về đúng dạng danh sách ảnh phẳng giống mọi API danh sách ảnh khác
+  // (listImages, searchImages, getCreatedImages), để frontend dùng chung
+  // một component hiển thị lưới ảnh cho cả 3 trường hợp.
+  const items = rows.map((row) => withCounts(row.image));
+
+  return buildPageResult({ items, totalItems, page, limit });
+};
+
+export default { getMe, updateMe, getCreatedImages, getSavedImages };
