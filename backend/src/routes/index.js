@@ -1,4 +1,6 @@
 import { Router } from "express";
+import authRoute from "./auth.route.js";
+import userRoute from "./user.route.js";
 
 const router = Router();
 
@@ -6,9 +8,7 @@ router.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-// Các route nghiệp vụ (auth, users, images, ...) sẽ được gắn vào đây
-// ở các giai đoạn tiếp theo, ví dụ:
-// import authRoute from "./auth.route.js";
-// router.use("/auth", authRoute);
+router.use("/auth", authRoute);
+router.use("/users", userRoute);
 
 export default router;
